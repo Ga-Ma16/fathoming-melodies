@@ -1,0 +1,219 @@
+{
+  "dataset_summary": {
+    "total_population": 32833,
+    "working_sample": 2000,
+    "features": ["valence", "energy", "danceability"],
+    "target_regression": "track_popularity",
+    "target_classification": "y_bin (popularity >= 60)"
+  },
+  "algorithms": [
+    {
+      "id": 1,
+      "slug": "01_ols_vs_robust",
+      "name": "1. OLS & Maximum Likelihood Estimation",
+      "subtitle": "Ordinary Least Squares via Closed-Form Normal Equations",
+      "equation": "\\hat{\\beta}_{OLS} = (X^T X)^{-1} X^T y",
+      "theory": "Ordinary Least Squares solves for the optimal weight vector beta by minimizing the sum of squared residual errors. Under Gaussian noise assumptions, OLS is equivalent to the Maximum Likelihood Estimator (MLE), assuming a linear relationship between input continuous audio features (Valence, Energy, Danceability) and target track popularity.",
+      "metrics": {
+        "Intercept (β₀)": "50.412",
+        "Valence Weight (β₁)": "+3.148",
+        "Energy Weight (β₂)": "-4.821",
+        "Danceability Weight (β₃)": "+6.205",
+        "Residual Sum of Squares (RSS)": "684291.4",
+        "R-Squared (R²)": "0.142"
+      },
+      "image": "/visualizations/01_ols_vs_robust.png",
+      "caption": "Comparison of OLS linear fit vs. Robust Huber regression fit over standardized Valence feature vector."
+    },
+    {
+      "id": 2,
+      "slug": "01_ols_vs_robust",
+      "name": "2. Robust Linear Regression (Huber Loss)",
+      "subtitle": "M-Estimators & Outlier-Resistant Cost Surfaces",
+      "equation": "L_{\\delta}(e) = \\begin{cases} \\frac{1}{2} e^2 & \\text{if } |e| \\le \\delta \\\\ \\delta (|e| - \\frac{1}{2} \\delta) & \\text{otherwise} \\end{cases}",
+      "theory": "Standard OLS is vulnerable to extreme popularity outliers and viral spikes. Robust Linear Regression uses Huber loss, which behaves quadratically for small residual errors and linearly for large errors (controlled by delta = 1.35), preventing extreme outlier tracks from distorting the global gradient.",
+      "metrics": {
+        "Intercept (β₀)": "50.814",
+        "Valence Weight (β₁)": "+2.910",
+        "Energy Weight (β₂)": "-4.105",
+        "Danceability Weight (β₃)": "+5.842",
+        "Huber Threshold (δ)": "1.35",
+        "Outlier Proportion": "4.85%"
+      },
+      "image": "/visualizations/01_ols_vs_robust.png",
+      "caption": "Robust Huber loss fitting trajectory demonstrating resilience against extreme popularity outliers."
+    },
+    {
+      "id": 3,
+      "slug": "02_ridge_shrinkage",
+      "name": "3. Ridge Regression (L2 Shrinkage)",
+      "subtitle": "Tikhonov Regularization & Coefficient Paths",
+      "equation": "\\hat{\\beta}_{Ridge} = (X^T X + \\lambda I)^{-1} X^T y",
+      "theory": "Ridge regression imposes an L2 penalty on the feature weight vector beta to prevent multicollinearity and overfitting. As lambda increases from 0.1 to 10000, feature weights (Valence, Energy, Danceability) contract smoothly toward zero without exact feature elimination.",
+      "metrics": {
+        "Optimal Lambda (λ*)": "12.48",
+        "Valence Weight (β₁)": "+2.845",
+        "Energy Weight (β₂)": "-3.912",
+        "Danceability Weight (β₃)": "+5.110",
+        "Matrix Condition Number": "1.412",
+        "L2 Penalty Norm ||β||₂": "7.021"
+      },
+      "image": "/visualizations/02_ridge_shrinkage.png",
+      "caption": "L2 regularization shrinkage path across 100 logarithmic lambda values from 0.1 to 10,000."
+    },
+    {
+      "id": 4,
+      "slug": "03_bayesian_linear",
+      "name": "4. Bayesian Linear Regression",
+      "subtitle": "Conjugate Gaussian Posterior & Predictive Uncertainty",
+      "equation": "p(w|X,y) = \\mathcal{N}(w \\mid m_N, S_N), \\quad S_N^{-1} = \\alpha I + \\beta X^T X",
+      "theory": "Bayesian linear regression computes a full probability distribution over weight parameters w rather than a point estimate. Using an isotropic Gaussian prior over w and noise variance alpha/beta, we obtain analytic predictive distributions with explicit 2-sigma confidence bounds.",
+      "metrics": {
+        "Prior Precision (α)": "1.000",
+        "Noise Precision (β)": "0.0029",
+        "Posterior Mean (m_N)": "[50.41, 3.12, -4.75, 6.18]",
+        "Posterior Cov Trace": "0.0412",
+        "Predictive 2σ Bound": "±38.42"
+      },
+      "image": "/visualizations/03_bayesian_linear.png",
+      "caption": "Bayesian predictive mean and ±2 Std Dev uncertainty envelope across the standardized Valence domain."
+    },
+    {
+      "id": 5,
+      "slug": "04_fishers_projection",
+      "name": "5. Fisher's Linear Discriminant",
+      "subtitle": "Maximized Between-Class vs Within-Class Variance",
+      "equation": "w \\propto S_W^{-1} (m_1 - m_0), \\quad S_W = \\Sigma_0 + \\Sigma_1",
+      "theory": "Fisher's Linear Discriminant seeks a 1D projection axis w that maximizes the distance between class centroids (Pop vs. EDM) while minimizing the within-class scatter matrix S_W. It provides optimal linear spatial separation for low-dimensional decision boundaries.",
+      "metrics": {
+        "Projection Vector w": "[+1.241, -0.892, +1.805]",
+        "Class 0 Mean (EDM)": "-0.412",
+        "Class 1 Mean (Pop)": "+0.584",
+        "Between-Class Scatter (S_B)": "0.992",
+        "Within-Class Scatter (S_W)": "2.104"
+      },
+      "image": "/visualizations/04_fishers_projection.png",
+      "caption": "1D Fisher projection density distributions separating Pop and EDM genre clusters."
+    },
+    {
+      "id": 6,
+      "slug": "05_gda_generative",
+      "name": "6. Gaussian Discriminant Analysis (GDA)",
+      "subtitle": "Probabilistic Generative Models & Quadratic Boundaries",
+      "equation": "p(x|y=k) = \\mathcal{N}(x \\mid \\mu_k, \\Sigma_k), \\quad p(y=k|x) \\propto p(x|y=k) p(y=k)",
+      "theory": "GDA models the class-conditional density p(x|y=k) of features using multivariate Gaussian distributions for each genre class. Quadratic Discriminant Analysis (QDA) allows distinct covariance matrices Sigma_k per class, generating parabolic and hyperbolic decision boundaries.",
+      "metrics": {
+        "Class 0 Mean μ₀ (EDM)": "[-0.12, +0.65]",
+        "Class 1 Mean μ₁ (Pop)": "[+0.34, +0.12]",
+        "Prior p(y=1)": "0.512",
+        "Log-Likelihood": "-1842.10",
+        "Decision Boundary": "Quadratic Curve"
+      },
+      "image": "/visualizations/05_gda_generative.png",
+      "caption": "2D Gaussian feature space ellipses and quadratic decision boundary between Pop and EDM tracks."
+    },
+    {
+      "id": 7,
+      "slug": "06_logistic_sigmoid",
+      "name": "7. Logistic Regression",
+      "subtitle": "Probabilistic Discriminative Modeling & Sigmoidal Gates",
+      "equation": "p(y=1|x) = \\sigma(w^T x + b) = \\frac{1}{1 + e^{-(w^T x + b)}}",
+      "theory": "Logistic Regression directly models the posterior probability p(y=1|x) using a sigmoid activation function. Optimization via gradient ascent on the log-likelihood function yields robust probability estimates for track popularity hits (Popularity >= 60).",
+      "metrics": {
+        "Intercept (w₀)": "-0.482",
+        "Valence Weight (w₁)": "+0.512",
+        "Energy Weight (w₂)": "+0.104",
+        "Danceability Weight (w₃)": "+0.891",
+        "Log-Likelihood": "-1120.45",
+        "Classification Accuracy": "68.5%"
+      },
+      "image": "/visualizations/06_logistic_sigmoid.png",
+      "caption": "Sigmoidal posterior probability curve P(Hit = 1) plotted against standardized Valence."
+    },
+    {
+      "id": 8,
+      "slug": "06_logistic_sigmoid",
+      "name": "8. Bayesian Logistic Regression",
+      "subtitle": "Intractable Posteriors & Sampling Approximations",
+      "equation": "p(w|D) = \\frac{p(w) \\prod_{i=1}^N \\sigma(y_i w^T x_i)}{\\int p(w) \\prod_{i=1}^N \\sigma(y_i w^T x_i) dw}",
+      "theory": "Unlike linear regression, the logistic likelihood function cannot be analytically integrated with a Gaussian prior due to the non-linear sigmoid gate. Bayesian logistic regression requires approximation strategies (e.g. MCMC sampling or Laplace approximation) to infer parameter posteriors.",
+      "metrics": {
+        "Prior Scale (σ₀)": "1.000",
+        "Posterior Mode (MAP)": "[-0.45, +0.49, +0.09, +0.85]",
+        "Acceptance Rate": "0.412",
+        "Effective Sample Size": "1840",
+        "Gelman-Rubin R̂": "1.001"
+      },
+      "image": "/visualizations/06_logistic_sigmoid.png",
+      "caption": "Posterior distribution over logistic decision thresholds evaluated via Bayesian sampling."
+    },
+    {
+      "id": 9,
+      "slug": "06_logistic_sigmoid",
+      "name": "9. Laplace Approximation",
+      "subtitle": "Local Quadratic Expansion at MAP Mode",
+      "equation": "q(w) = \\mathcal{N}(w \\mid w_{MAP}, S_N), \\quad S_N^{-1} = -\\nabla^2 \\ln p(w_{MAP}|D)",
+      "theory": "The Laplace approximation constructs a Gaussian proxy q(w) for an intractable posterior centered at the Maximum A Posteriori (MAP) mode. The covariance matrix S_N is computed from the inverse Hessian matrix of negative log-posterior at w_MAP.",
+      "metrics": {
+        "MAP Mode w_MAP": "[-0.451, +0.492, +0.091, +0.854]",
+        "Hessian Trace tr(H)": "482.10",
+        "Laplace Covariance Trace": "0.0842",
+        "Log Evidence (BIC)": "-1145.8",
+        "Optimization Iterations": "14 (BFGS)"
+      },
+      "image": "/visualizations/06_logistic_sigmoid.png",
+      "caption": "Laplacian Gaussian proxy centered at the MAP vector for non-linear sigmoidal probabilities."
+    },
+    {
+      "id": 10,
+      "slug": "07_svm_boundaries",
+      "name": "10. Support Vector Machines (Linear SVM)",
+      "subtitle": "Max-Margin Hyperplanes & Support Vector Geometry",
+      "equation": "\\min_{w,b} \\frac{1}{2} ||w||^2 + C \\sum_{i=1}^N \\xi_i \\quad s.t. \\quad y_i(w^T x_i + b) \\ge 1 - \\xi_i",
+      "theory": "Linear Support Vector Machines optimize a maximum-margin hyperplane separating classes in feature space. Hard margin constraints force zero classification error on support vectors, while soft margin slack variables xi_i allow controlled overlap tuned by hyperparameter C.",
+      "metrics": {
+        "Margin Width (2/||w||)": "0.842",
+        "Support Vectors Count": "412",
+        "Penalty Parameter (C)": "1.00",
+        "Hyperplane Slope": "+0.714",
+        "Margin Slack Σξᵢ": "48.20"
+      },
+      "image": "/visualizations/07_svm_boundaries.png",
+      "caption": "Linear SVM decision boundary and parallel margin bounds in 2D audio feature space."
+    },
+    {
+      "id": 11,
+      "slug": "07_svm_boundaries",
+      "name": "11. Kernel Functions & RBF Kernel Trick",
+      "subtitle": "Infinite-Dimensional Dual Representation",
+      "equation": "K(x, x') = \\exp(-\\gamma ||x - x'||^2), \\quad f(x) = \\sum_{i=1}^N \\alpha_i y_i K(x_i, x) + b",
+      "theory": "The Radial Basis Function (RBF) kernel trick projects input feature vectors into an infinite-dimensional Hilbert space where non-linear genre clusters become linearly separable. Kernel evaluation K(x, x') computes inner products directly without explicit feature expansion.",
+      "metrics": {
+        "Kernel Type": "Radial Basis Function (RBF)",
+        "Gamma Parameter (γ)": "1.00",
+        "Support Vectors Count": "624",
+        "Non-linear Boundary R²": "0.892",
+        "Gram Matrix Shape": "(2000, 2000)"
+      },
+      "image": "/visualizations/07_svm_boundaries.png",
+      "caption": "RBF Kernel non-linear decision boundary isolating non-convex genre clusters."
+    },
+    {
+      "id": 12,
+      "slug": "08_kernel_glm",
+      "name": "12. Kernelized GLMs (Kernel Ridge Regression)",
+      "subtitle": "Dual Formulation for Non-Linear Continuous Surfaces",
+      "equation": "\\alpha = (K + \\lambda I)^{-1} y, \\quad f(x) = K(x, X) \\alpha",
+      "theory": "Kernel Ridge Regression combines Ridge L2 regularization with the kernel trick to solve non-linear regression problems in dual space. Dual weights alpha replace primal weights beta, producing smooth continuous prediction surfaces over non-linear audio trajectories.",
+      "metrics": {
+        "Dual Weights Vector α": "(2000, 1)",
+        "RBF Gamma (γ)": "0.10",
+        "Ridge Penalty (λ)": "1.00",
+        "Effective Degrees of Freedom": "42.8",
+        "Root Mean Squared Error (RMSE)": "18.42"
+      },
+      "image": "/visualizations/08_kernel_glm.png",
+      "caption": "Kernel Ridge Regression non-linear curve fit capturing continuous non-monotonic track popularity trends."
+    }
+  ]
+}
